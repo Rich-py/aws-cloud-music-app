@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Player</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      color: #222;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 1100px;
+      margin: 40px auto;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #1f6feb;
+      color: white;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    button:hover {
+      background: #185abc;
+    }
+
+    .danger {
+      background: #d93025;
+    }
+
+    .danger:hover {
+      background: #b3261e;
+    }
+
+    .link {
+      color: #1f6feb;
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .message {
+      color: #d93025;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+
+    .success {
+      color: #188038;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .query-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .music-card {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      background: #fafafa;
+    }
+
+    .music-card img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .empty {
+      padding: 14px;
+      border: 1px dashed #aaa;
+      border-radius: 8px;
+      color: #555;
+      background: #f8f9fa;
+    }
+
+    @media (max-width: 700px) {
+      .query-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .music-card {
+        grid-template-columns: 1fr;
+      }
+
+      .music-card img {
+        width: 100%;
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <section id="loginPage" class="card">
+    <h1>Login</h1>
+
+    <label>Email</label>
+    <input type="email" id="loginEmail" placeholder="Enter email" />
+
+    <label>Password</label>
+    <input type="password" id="loginPassword" placeholder="Enter password" />
+
+    <button onclick="loginUser()">Login</button>
+    <button class="link" onclick="showPage('registerPage')">Register here</button>
+
+    <p id="loginMessage" class="message"></p>
+  </section>
+
+  <section id="registerPage" class="card hidden">
+    <h1>Register</h1>
+
+    <label>Email</label>
+    <input type="email" id="registerEmail" placeholder="Enter email" />
+
+    <label>Username</label>
+    <input type="text" id="registerUsername" placeholder="Enter username" />
+
+    <label>Password</label>
+    <input type="password" id="registerPassword" placeholder="Enter password" />
+
+    <button onclick="registerUser()">Register</button>
+    <button class="link" onclick="showPage('loginPage')">Back to Login</button>
+
+    <p id="registerMessage" class="message"></p>
+  </section>
+
+  <section id="mainPage" class="hidden">
+    <div class="top-bar">
+      <h1>Music Player</h1>
+      <button class="danger" onclick="logoutUser()">Logout</button>
+    </div>
+
+    <div class="card">
+      <h2>User Area</h2>
+      <p>Welcome, <strong id="displayUsername"></strong></p>
+    </div>
+
+    <div class="card">
+      <h2>Subscription Area</h2>
+      <div id="subscriptionList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Query Area</h2>
+
+      <div class="query-grid">
+        <div>
+          <label>Title</label>
+          <input type="text" id="queryTitle" placeholder="Enter title" />
+        </div>
+
+        <div>
+          <label>Year</label>
+          <input type="text" id="queryYear" placeholder="Enter year" />
+        </div>
+
+        <div>
+          <label>Artist</label>
+          <input type="text" id="queryArtist" placeholder="Enter artist" />
+        </div>
+
+        <div>
+          <label>Album</label>
+          <input type="text" id="queryAlbum" placeholder="Enter album" />
+        </div>
+      </div>
+
+      <button onclick="queryMusic()">Query</button>
+      <p id="queryMessage" class="message"></p>
+
+      <div id="queryResults"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const API_BASE_URL = "http://music-alb-1318368500.us-east-1.elb.amazonaws.com";
+
+  let currentUser = JSON.parse(sessionStorage.getItem("currentUser")) || null;
+
+  function showPage(pageId) {
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("registerPage").classList.add("hidden");
+    document.getElementById("mainPage").classList.add("hidden");
+
+    document.getElementById(pageId).classList.remove("hidden");
+    clearMessages();
+  }
+
+  function clearMessages() {
+    document.getElementById("loginMessage").textContent = "";
+    document.getElementById("registerMessage").textContent = "";
+    document.getElementById("queryMessage").textContent = "";
+  }
+
+  async function loginUser() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value.trim();
+    const message = document.getElementById("loginMessage");
+
+    const res = await fetch(`${API_BASE_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      message.textContent = "email or password is invalid";
+      return;
+    }
+
+    currentUser = data.user;
+    sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+
+    loadMainPage();
+  }
+
+  async function registerUser() {
+    const email = document.getElementById("registerEmail").value.trim();
+    const user_name = document.getElementById("registerUsername").value.trim();
+    const password = document.getElementById("registerPassword").value.trim();
+    const message = document.getElementById("registerMessage");
+
+    if (!email || !user_name || !password) {
+      message.textContent = "Please complete all fields";
+      return;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, user_name, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      message.textContent = "The email already exists";
+      return;
+    }
+
+    message.classList.add("success");
+    message.textContent = "Registration successful. Redirecting to login page...";
+
+    setTimeout(() => {
+      message.classList.remove("success");
+      showPage("loginPage");
+    }, 900);
+  }
+
+  function loadMainPage() {
+    if (!currentUser) {
+      showPage("loginPage");
+      return;
+    }
+
+    document.getElementById("displayUsername").textContent = currentUser.user_name;
+    showPage("mainPage");
+    loadSubscriptions();
+  }
+
+  async function loadSubscriptions() {
+    const list = document.getElementById("subscriptionList");
+    list.innerHTML = "";
+
+    const res = await fetch(
+      `${API_BASE_URL}/subscriptions?email=${encodeURIComponent(currentUser.email)}`
+    );
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty">No subscribed music yet.</div>`;
+      return;
+    }
+
+    items.forEach(song => {
+      list.appendChild(createMusicCard(song, "Remove", () => removeSubscription(song), true));
+    });
+  }
+
+  async function queryMusic() {
+    const title = document.getElementById("queryTitle").value.trim();
+    const year = document.getElementById("queryYear").value.trim();
+    const artist = document.getElementById("queryArtist").value.trim();
+    const album = document.getElementById("queryAlbum").value.trim();
+
+    const message = document.getElementById("queryMessage");
+    const results = document.getElementById("queryResults");
+
+    message.textContent = "";
+    results.innerHTML = "";
+
+    if (!title && !year && !artist && !album) {
+      message.textContent = "At least one field must be completed";
+      return;
+    }
+
+    const params = new URLSearchParams();
+
+    if (title) params.append("title", title);
+    if (year) params.append("year", year);
+    if (artist) params.append("artist", artist);
+    if (album) params.append("album", album);
+
+    const res = await fetch(`${API_BASE_URL}/songs?${params.toString()}`);
+    const data = await res.json();
+
+    const items = data.items || [];
+
+    if (items.length === 0) {
+      message.textContent = "No result is retrieved. Please query again";
+      return;
+    }
+
+    items.forEach(song => {
+      results.appendChild(createMusicCard(song, "Subscribe", () => subscribeMusic(song), false));
+    });
+  }
+
+  async function subscribeMusic(song) {
+    await fetch(`${API_BASE_URL}/subscriptions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: currentUser.email,
+        song: song
+      })
+    });
+
+    loadSubscriptions();
+  }
+
+  async function removeSubscription(song) {
+    await fetch(
+      `${API_BASE_URL}/subscriptions?email=${encodeURIComponent(currentUser.email)}&song_key=${encodeURIComponent(song.song_key)}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    loadSubscriptions();
+  }
+
+  function createMusicCard(song, buttonText, buttonAction, isRemove) {
+    const card = document.createElement("div");
+    card.className = "music-card";
+
+    const img = document.createElement("img");
+    img.src = song.image_url || "https://via.placeholder.com/120?text=No+Image";
+    img.alt = `${song.artist} image`;
+
+    const details = document.createElement("div");
+    details.innerHTML = `
+      <p><strong>Title:</strong> ${escapeHtml(song.title)}</p>
+      <p><strong>Artist:</strong> ${escapeHtml(song.artist)}</p>
+      <p><strong>Year:</strong> ${escapeHtml(String(song.year))}</p>
+      <p><strong>Album:</strong> ${escapeHtml(song.album)}</p>
+    `;
+
+    const button = document.createElement("button");
+    button.textContent = buttonText;
+
+    if (isRemove) {
+      button.classList.add("danger");
+    }
+
+    button.onclick = buttonAction;
+
+    card.appendChild(img);
+    card.appendChild(details);
+    card.appendChild(button);
+
+    return card;
+  }
+
+  async function logoutUser() {
+    sessionStorage.removeItem("currentUser");
+    currentUser = null;
+    showPage("loginPage");
+  }
+
+  function escapeHtml(value) {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  if (currentUser) {
+    loadMainPage();
+  } else {
+    showPage("loginPage");
+  }
+</script>
+</body>
+</html>
