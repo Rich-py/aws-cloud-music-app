@@ -4,6 +4,16 @@ A cloud-native music subscription web application built and deployed on **Amazon
 
 This project showcases practical cloud engineering concepts including containerization, serverless computing, RESTful API development, NoSQL database integration, cloud storage, and AWS service orchestration.
 
+## 🎬 Demo
+
+22-second demo: the same app running on EC2, ECS Fargate and Lambda. This was a team project; I built the ECS Fargate backend.
+
+
+
+https://github.com/user-attachments/assets/689f7ce0-0509-41f4-8e65-26314db26d0b
+
+
+
 ---
 
 ## 📌 Project Overview
